@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Расписание</title>
+<style>
+  :root {
+    --bg: #14100f;
+    --surface: #1e191a;
+    --surface-2: #26201f;
+    --line: #352d2b;
+    --text: #f2ece2;
+    --muted: #b3a89c;
+    --muted-2: #8a7f75;
+    --gold: #d9ab5f;
+    --rose: #c1666b;
+    --slate: #7c93ac;
+    --sage: #6fa387;
+    --today-glow: rgba(217,171,95,0.14);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  body { min-height: 100vh; padding-bottom: env(safe-area-inset-bottom); }
+  .topbar {
+    position: sticky; top: 0; z-index: 20;
+    background: linear-gradient(var(--bg) 88%, transparent);
+    padding: calc(env(safe-area-inset-top) + 14px) 18px 10px;
+  }
+  .brand {
+    font-weight: 600; font-size: 1.5rem; margin: 0 0 12px;
+    display: flex; align-items: baseline; justify-content: space-between;
+  }
+  .brand .grp {
+    font-size: 0.72rem; font-weight: 600; color: var(--bg);
+    background: var(--gold); padding: 4px 10px; border-radius: 100px; border: none;
+  }
+  .weeknav { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .weeknav button {
+    background: var(--surface); border: 1px solid var(--line); color: var(--text);
+    width: 38px; height: 38px; border-radius: 12px; font-size: 1.1rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .weeklabel { flex: 1; text-align: center; font-size: 0.95rem; color: var(--muted); }
+  .weeklabel b { color: var(--text); font-weight: 600; }
+  .weeklabel .todaylink { display: block; font-size: 0.72rem; color: var(--gold); margin-top: 1px; }
+  main { padding: 4px 18px 40px; }
+  .day-section { margin-bottom: 26px; }
+  .day-header { display: flex; align-items: baseline; gap: 8px; margin: 0 0 10px 2px; }
+  .day-header .dname { font-size: 1.15rem; font-weight: 600; text-transform: capitalize; }
+  .day-header .ddate { color: var(--muted); font-size: 0.85rem; }
+  .day-header.is-today .dname { color: var(--gold); }
+  .day-header .pill { margin-left: auto; font-size: 0.68rem; color: var(--muted-2); border: 1px solid var(--line); padding: 2px 8px; border-radius: 100px; }
+  .card {
+    display: flex; gap: 12px; background: var(--surface);
+    border-radius: 14px; padding: 13px 14px; margin-bottom: 8px; position: relative; overflow: hidden;
+  }
+  .card.today-card { background: var(--today-glow); }
+  .card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+  .card.t-л::before { background: var(--gold); }
+  .card.t-пр::before { background: var(--rose); }
+  .card.t-сем::before { background: var(--slate); }
+  .card.t-лаб::before { background: var(--sage); }
+  .card .time { width: 58px; font-size: 0.82rem; color: var(--muted); line-height: 1.4; }
+  .card .time .end { color: var(--muted-2); }
+  .card .info { flex: 1; min-width: 0; }
+  .card .subject { font-weight: 600; font-size: 0.98rem; line-height: 1.3; }
+  .card .meta { margin-top: 3px; font-size: 0.8rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { font-size: 0.68rem; font-weight: 600; padding: 1px 7px; border-radius: 100px; background: var(--surface-2); }
+  .tag.t-л { color: var(--gold); }
+  .tag.t-пр { color: var(--rose); }
+  .tag.t-сем { color: var(--slate); }
+  .tag.t-лаб { color: var(--sage); }
+  .empty-day { color: var(--muted-2); font-size: 0.88rem; padding: 10px 2px 2px; }
+  .settings-sheet { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; z-index: 50; }
+  .settings-sheet.open { display: flex; }
+  .sheet { background: var(--surface); width: 100%; border-radius: 20px 20px 0 0; padding: 20px 20px calc(24px + env(safe-area-inset-bottom)); }
+  .sheet h3 { margin: 0 0 14px; font-size: 1.15rem; }
+  .sheet label { display: block; font-size: 0.8rem; color: var(--muted); margin: 14px 0 6px; }
+  .segmented { display: flex; background: var(--surface-2); border-radius: 10px; padding: 3px; gap: 3px; }
+  .segmented button { flex: 1; border: none; background: transparent; color: var(--muted); padding: 9px 0; border-radius: 8px; font-size: 0.85rem; }
+  .segmented button.active { background: var(--surface); color: var(--text); font-weight: 600; }
+  .sheet input[type="date"] { width: 100%; background: var(--surface-2); border: 1px solid var(--line); color: var(--text); padding: 10px 12px; border-radius: 10px; }
+  .sheet .close-btn { margin-top: 20px; width: 100%; background: var(--gold); color: var(--bg); border: none; padding: 13px; border-radius: 12px; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">
+    <span>Расписание</span>
+    <button class="grp" id="grpBtn">2 подгруппа ⚙</button>
+  </div>
+  <div class="weeknav">
+    <button id="prevWeek">‹</button>
+    <div class="weeklabel">
+      <span id="weekRange">—</span> · <b id="weekNum">Неделя —</b>
+      <span class="todaylink" id="todayLink">Сегодня</span>
+    </div>
+    <button id="nextWeek">›</button>
+  </div>
+</div>
+<main id="days"></main>
+<div class="settings-sheet" id="sheet">
+  <div class="sheet">
+    <h3>Настройки</h3>
+    <label>Подгруппа</label>
+    <div class="segmented" id="grpSeg">
+      <button data-v="1">1 подгруппа</button>
+      <button data-v="2">2 подгруппа</button>
+      <button data-v="both">Обе</button>
+    </div>
+    <label>Дата начала недели №1 (понедельник)</label>
+    <input type="date" id="anchorInput">
+    <button class="close-btn" id="closeSheet">Готово</button>
+  </div>
+</div>
+<script>
+const SCHEDULE = [{"day": "понедельник", "time": "9.40-11.05", "weeks": [2, 3], "type": "л", "subgroup": null, "subject": "Искусство балетмейстера", "teacher": "Навродская О.А."}, {"day": "понедельник", "time": "9.40-11.05", "weeks": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], "type": "пр", "subgroup": "1/2", "subject": "Искусство балетмейстера", "teacher": "Навродская О.А"}, {"day": "понедельник", "time": "11.20-12.45", "weeks": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], "type": "пр", "subgroup": "2/2", "subject": "Искусство балетмейстера", "teacher": "Навродская О.А"}, {"day": "понедельник", "time": "13.10-14.35", "weeks": [2, 3, 4, 5], "type": "л", "subgroup": null, "subject": "Введение в спец.и информ.культура специалиста", "teacher": "Беляева О.П"}, {"day": "понедельник", "time": "13.10-14.35", "weeks": [6, 7, 8], "type": "л", "subgroup": null, "subject": "История и теория хореографического искусства", "teacher": "Кожемяко Д.А"}, {"day": "понедельник", "time": "14.50-16.15", "weeks": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17], "type": "пр", "subgroup": null, "subject": "Хореографический тренаж", "teacher": "Борщева А.В"}, {"day": "понедельник", "time": "16.35-18.00", "weeks": [2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17], "type": "пр", "subgroup": "1/2", "subject": "Классический танец", "teacher": "Борщева А.В"}, {"day": "понедельник", "time": "18.10-19.35", "weeks": [2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17], "type": "пр", "subgroup": "2/2", "subject": "Классический танец", "teacher": "Борщева А.В"}, {"day": "вторник", "time": "9.40-11.05", "weeks": [1, 2, 3, 4, 5, 6], "type": "пр", "subgroup": "1/2", "subject": "Методика и техн.эстрадного танца", "teacher": "Чернышова Е.А"}, {"day": "вторник", "time": "9.40-11.05", "weeks": [7, 8, 9, 10, 11, 12], "type": "пр", "subgroup": "2/2", "subject": "Методика и техн.эстрадного танца", "teacher": "Чернышова Е.А"}, {"day": "вторник", "time": "9.40-11.05", "weeks": [13, 14, 15], "type": "пр", "subgroup": null, "subject": "Хореографический тренаж", "teacher": "Чернышова Е.А"}, {"day": "вторник", "time": "11.20-12.45", "weeks": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17], "type": "пр", "subgroup": null, "subject": "Контактная импровизация", "teacher": "Мунасыпова С.Р"}, {"day": "вторник", "time": "13.10-14.35", "weeks": [2, 4], "type": "л", "subgroup": null, "subject": "Театральное искусство", "teacher": "Никофоренко А.Н"}, {"day": "вторник", "time": "13.10-14.35", "weeks": [5, 6, 7], "type": "пр", "subgroup": null, "subject": "Хореографический тренаж", "teacher": "Чернышова Е.А"}, {"day": "вторник", "time": "14.50-16.15", "weeks": [1, 2, 3], "type": "л", "subgroup": null, "subject": "Основы информационных технологий", "teacher": "Серегина Л.А"}, {"day": "вторник", "time": "14.50-16.15", "weeks": [4, 5, 6, 7, 8, 9, 10, 11], "type": "л", "subgroup": null, "subject": "Театральное искусство", "teacher": "Никофоренко А.Н"}, {"day": "вторник", "time": "16.35-18.00", "weeks": [8], "type": "л", "subgroup": null, "subject": "Театральное искусство", "teacher": "Никофоренко А.Н"}, {"day": "вторник", "time": "16.35-18.00", "weeks": [9, 10, 11, 12], "type": "сем", "subgroup": null, "subject": "Театральное искусство", "teacher": "Никофоренко А.Н"}, {"day": "среда", "time": "8.00-9.25", "weeks": [10, 11, 12, 13, 14], "type": "сем", "subgroup": null, "subject": "Безопасность жизнедеятельности человека", "teacher": "Абрамович П.А"}, {"day": "среда", "time": "9.40-11.05", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], "type": "пр", "subgroup": null, "subject": "Иностранный язык", "teacher": ""}, {"day": "среда", "time": "11.20-12.45", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], "type": "пр", "subgroup": "1/2", "subject": "Методика и техн.эстрадного", "teacher": "Чернышова Е.А"}, {"day": "среда", "time": "13.10-14.35", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], "type": "пр", "subgroup": "2/2", "subject": "Методика и техн.эстрадного", "teacher": "Чернышова Е.А"}, {"day": "среда", "time": "14.50-16.15", "weeks": [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], "type": "лаб", "subgroup": null, "subject": "Основы информационных технологий", "teacher": ""}, {"day": "среда", "time": "16.35-18.00", "weeks": [6, 7, 8, 9, 15, 16], "type": "пр", "subgroup": null, "subject": "Безопасность жизнедеятельности человека", "teacher": "Тришин Л.С"}, {"day": "среда", "time": "16.35-18.00", "weeks": [12], "type": "пр", "subgroup": null, "subject": "Безопасность жизнедеятельности человека", "teacher": "Кандрукевич О.В"}, {"day": "четверг", "time": "8.00-9.25", "weeks": [3], "type": "л", "subgroup": null, "subject": "Хореографический ансамбль", "teacher": "Навродская О.А"}, {"day": "четверг", "time": "9.40-11.05", "weeks": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], "type": "пр", "subgroup": "1/2", "subject": "Хореографический ансамбль", "teacher": "Навродская О.А"}, {"day": "четверг", "time": "11.20-12.45", "weeks": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], "type": "пр", "subgroup": "2/2", "subject": "Хореографический ансамбль", "teacher": "Навродская О.А"}, {"day": "четверг", "time": "13.10-14.35", "weeks": [1, 2, 3, 4, 5], "type": "л", "subgroup": null, "subject": "Введение в спец.и информ.культура специалиста", "teacher": "Шишкова Е.А"}, {"day": "четверг", "time": "13.10-14.35", "weeks": [6, 7, 8, 9], "type": "сем", "subgroup": null, "subject": "Политология", "teacher": "Еськевич К.Р"}, {"day": "четверг", "time": "14.50-16.15", "weeks": [2, 4, 5, 6, 7], "type": "пр", "subgroup": "1/2", "subject": "Классический танец", "teacher": "Борщева А.В"}, {"day": "четверг", "time": "14.50-16.15", "weeks": [8, 9, 10, 11, 12, 13], "type": "пр", "subgroup": "2/2", "subject": "Классический танец", "teacher": "Борщева А.В"}, {"day": "четверг", "time": "14.50-16.15", "weeks": [14, 15, 16], "type": "пр", "subgroup": null, "subject": "Хореографический тренаж", "teacher": "Борщева А.В"}, {"day": "пятница", "time": "9.40-11.05", "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], "type": "пр", "subgroup": null, "subject": "Хореографический тренаж", "teacher": "Чернышова Е.А"}, {"day": "пятница", "time": "11.20-12.45", "weeks": [15, 16], "type": "сем", "subgroup": null, "subject": "История и теория хореограф. искусства", "teacher": "Кожемяко Д.А"}, {"day": "пятница", "time": "14.50-16.15", "weeks": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], "type": "л", "subgroup": null, "subject": "Безопасность жизнедеятельности человека", "teacher": "Тришин Л.С"}, {"day": "пятница", "time": "16.35-18.00", "weeks": [3, 4, 5], "type": "л", "subgroup": null, "subject": "Безопасность жизнедеятельности человека", "teacher": "Тришин Л.С"}, {"day": "суббота", "time": "8.00-9.25", "weeks": [2, 3, 4, 5, 6, 7, 8, 9], "type": "л", "subgroup": null, "subject": "Политология", "teacher": "Еськевич К.Р"}, {"day": "суббота", "time": "9.40-11.05", "weeks": [2, 3, 4, 5, 6, 7], "type": "л", "subgroup": null, "subject": "Политология", "teacher": "Еськевич К.Р"}, {"day": "суббота", "time": "9.40-11.05", "weeks": [9, 11, 12, 13], "type": "сем", "subgroup": null, "subject": "Введение в спец.и информ.культура специалиста", "teacher": "Шишкова Е.А"}, {"day": "суббота", "time": "9.40-11.05", "weeks": [14, 15], "type": "пр", "subgroup": null, "subject": "Введение в спец.и информ.культура специалиста", "teacher": "Шишкова Е.А"}];
+
+const DAY_ORDER = ['понедельник','вторник','среда','четверг','пятница','суббота'];
+const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const DEFAULT_ANCHOR = '2026-08-31';
+
+let anchor = DEFAULT_ANCHOR;
+let subgroup = '2';
+
+try {
+  anchor = localStorage.getItem('sched_anchor') || DEFAULT_ANCHOR;
+  subgroup = localStorage.getItem('sched_subgroup') || '2';
+} catch(e) {}
+
+let viewedWeek = null;
+
+function parseDateLocal(s){ const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+function addDays(date, n){ const d = new Date(date); d.setDate(d.getDate()+n); return d; }
+function isSameDate(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
+function mondayOfWeek(w){ return addDays(parseDateLocal(anchor), (w-1)*7); }
+function currentWeekNumber(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diffDays = Math.floor((today - parseDateLocal(anchor)) / 86400000);
+  return Math.floor(diffDays/7)+1;
+}
+function fmtShortDate(d){ return d.getDate() + ' ' + MONTHS[d.getMonth()]; }
+function subgroupMatches(s){ if(!s || subgroup==='both') return true; return s.startsWith(subgroup); }
+
+function render(){
+  const week = viewedWeek ?? currentWeekNumber();
+  const weekMonday = mondayOfWeek(week);
+  document.getElementById('weekRange').textContent = fmtShortDate(weekMonday) + ' — ' + fmtShortDate(addDays(weekMonday, 5));
+  document.getElementById('weekNum').textContent = 'Неделя ' + week;
+  document.getElementById('grpBtn').textContent = (subgroup === 'both' ? 'Обе подгруппы' : subgroup + ' подгруппа') + ' ⚙';
+  document.getElementById('todayLink').style.visibility = (week === currentWeekNumber()) ? 'hidden' : 'visible';
+
+  const container = document.getElementById('days');
+  container.innerHTML = '';
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  DAY_ORDER.forEach((dayName, idx) => {
+    const dayDate = addDays(weekMonday, idx);
+    const isToday = isSameDate(dayDate, today);
+    const section = document.createElement('div');
+    section.className = 'day-section';
+    section.innerHTML = `<div class="day-header ${isToday ? 'is-today' : ''}">
+      <span class="dname">${dayName}</span><span class="ddate">${fmtShortDate(dayDate)}</span>
+      ${isToday ? '<span class="pill">сегодня</span>' : ''}</div>`;
+
+    const items = SCHEDULE.filter(it => it.day === dayName && it.weeks.includes(week) && subgroupMatches(it.subgroup))
+      .sort((a,b) => a.time.localeCompare(b.time));
+
+    if(items.length === 0){
+      section.innerHTML += '<div class="empty-day">Занятий нет</div>';
+    } else {
+      items.forEach(it => {
+        const [start,end] = it.time.split('-');
+        section.innerHTML += `
+          <div class="card t-${it.type} ${isToday ? 'today-card' : ''}">
+            <div class="time">${start}<br><span class="end">${end}</span></div>
+            <div class="info">
+              <div class="subject">${it.subject}</div>
+              <div class="meta">
+                <span class="tag t-${it.type}">${{л:'лекция', пр:'практика', сем:'семинар', лаб:'лаб.работа'}[it.type]||it.type}</span>
+                ${it.subgroup ? `<span>подгр. ${it.subgroup}</span>` : ''}
+                ${it.teacher ? `<span>· ${it.teacher}</span>` : ''}
+              </div>
+            </div>
+          </div>`;
+      });
+    }
+    container.appendChild(section);
+  });
+}
+
+document.getElementById('prevWeek').onclick = () => { viewedWeek = (viewedWeek ?? currentWeekNumber()) - 1; render(); };
+document.getElementById('nextWeek').onclick = () => { viewedWeek = (viewedWeek ?? currentWeekNumber()) + 1; render(); };
+document.getElementById('todayLink').onclick = () => { viewedWeek = null; render(); };
+
+const sheet = document.getElementById('sheet');
+document.getElementById('grpBtn').onclick = () => { document.getElementById('anchorInput').value = anchor; updateGrpSeg(); sheet.classList.add('open'); };
+document.getElementById('closeSheet').onclick = () => sheet.classList.remove('open');
+
+function updateGrpSeg(){
+  document.querySelectorAll('#grpSeg button').forEach(b => b.classList.toggle('active', b.dataset.v === subgroup));
+}
+document.querySelectorAll('#grpSeg button').forEach(b => {
+  b.onclick = () => {
+    subgroup = b.dataset.v;
+    try { localStorage.setItem('sched_subgroup', subgroup); } catch(e){}
+    updateGrpSeg(); render();
+  };
+});
+document.getElementById('anchorInput').onchange = (e) => {
+  anchor = e.target.value;
+  try { localStorage.setItem('sched_anchor', anchor); } catch(e){}
+  render();
+};
+
+render();
+</script>
+</body>
+</html>
