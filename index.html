@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Расписаааааааание</title>
+<title>Расписание</title>
 <style>
   :root {
     --bg: #14100f;
@@ -148,6 +148,13 @@ function currentWeekNumber(){
 function fmtShortDate(d){ return d.getDate() + ' ' + MONTHS[d.getMonth()]; }
 function subgroupMatches(s){ if(!s || subgroup==='both') return true; return s.startsWith(subgroup); }
 
+// Вспомогательная функция для перевода времени ("9.40-11.05") в минуты с начала дня
+function parseStartTimeMinutes(timeStr) {
+  const startPart = timeStr.split('-')[0];
+  const [hours, minutes] = startPart.split('.').map(Number);
+  return hours * 60 + minutes;
+}
+
 function render(){
   const week = viewedWeek ?? currentWeekNumber();
   const weekMonday = mondayOfWeek(week);
@@ -170,7 +177,7 @@ function render(){
       ${isToday ? '<span class="pill">сегодня</span>' : ''}</div>`;
 
     const items = SCHEDULE.filter(it => it.day === dayName && it.weeks.includes(week) && subgroupMatches(it.subgroup))
-      .sort((a,b) => a.time.localeCompare(b.time));
+      .sort((a,b) => parseStartTimeMinutes(a.time) - parseStartTimeMinutes(b.time));
 
     if(items.length === 0){
       section.innerHTML += '<div class="empty-day">Занятий нет</div>';
